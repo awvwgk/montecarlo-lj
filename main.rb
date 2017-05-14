@@ -10,9 +10,13 @@ OptionParser.new do |option|
 	end
 end.parse!
 #-------------------------------------------------------------------#
-#data = Array.new
-#File.readlines(ARGV[0]).each { |line| data << line.chomp }
-#TODO
+input,data,old = File.readlines(name+'.xyz'),Array.new,Array.new
+$particle      = input[0].to_i
+$coordinates   = 3*$particle
+input.slice(2..(input.length-1)).each do |line|
+	data << line.split(%r{\s+}).slice(1..3)
+end
+data.flatten.each { |coordinate| old << coordinate.to_f }
 #-------------------------------------------------------------------#
 #! Einlesen der wichtigen Daten
 #  - MCs für Einstellung des Gleichgewichts
@@ -26,8 +30,6 @@ $delta2      = 2*$delta
 #  - Anzahl von Schritten während MC
 ## Parameter
 #  - Maximale Anzahl an Partikeln
-$particle    = 10
-$coordinates = 3*$particle
 ## System
 #  - Boxlänge
 #    - Halbe Boxlänge
@@ -35,7 +37,7 @@ $box         =
 $hbox        = 0.5*$box
 #  - Temperatur
 #    - beta
-$temperatur  =
+$temperatur  = 10
 $beta        = 1.0/$temperatur
 ## Potential (hier LJ)
 #  - epsilon
@@ -46,6 +48,7 @@ $sigma       = 3.487#Å für Argon
 $sigma2      = $sigma**2
 #  - cut-off radius
 $cut_off_radius
+#-------------------------------------------------------------------#
 ## Konfiguration
 #  - Anzahl der Partikel
 #  - Position der Partikel
@@ -172,7 +175,7 @@ end
 trj.close
 #-------------------------------------------------------------------#
 #! Ausgabe der Endkonfiguration (zerstört Endkonfiguration)
-#  ist das überhaupt interessant?
+#  ist das überhaupt interessant? → Startkonfiguration für neuen MC
 xyz = File.open(name + '.xyz','w+')
 xyz << old.length.to_s + "\n"
 xyz << "Coordinates from montecarlo-lj.rb\n"

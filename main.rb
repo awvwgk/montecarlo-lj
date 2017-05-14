@@ -3,15 +3,15 @@
 require 'opt-parser'
 options = Hash.new
 OptionParser.new do |option|
-	option.banner = 'Benutzung:'
+	option.banner = 'Benutzung: ruby main.rb input-file'
 	option.on_tail '-h','--help','Zeige diese  Nachricht' do
 		puts option
 		exit
 	end
 end.parse!
 #-------------------------------------------------------------------#
-data = Array.new
-File.readlines(ARGV[1]).each { |line| data << line.chomp }
+#data = Array.new
+#File.readlines(ARGV[0]).each { |line| data << line.chomp }
 #TODO
 #-------------------------------------------------------------------#
 #! Einlesen der wichtigen Daten
@@ -21,24 +21,28 @@ $max_runs    = 1000
 #  - Anzahl von MCs zwischen der Datenaufnahme
 $max_steps   = 10
 #  - Maximale Schrittlänge
-$delta       =
+$delta       = 0.01
 $delta2      = 2*$delta
 #  - Anzahl von Schritten während MC
 ## Parameter
 #  - Maximale Anzahl an Partikeln
-$particle    = 
+$particle    = 10
 $coordinates = 3*$particle
 ## System
 #  - Boxlänge
 #    - Halbe Boxlänge
+$box         = 
+$hbox        = 0.5*$box
 #  - Temperatur
 #    - beta
+$temperatur  =
+$beta        = 1.0/$temperatur
 ## Potential (hier LJ)
 #  - epsilon
-$epsilon     =
+$epsilon     = 111.7#K für Argon
 $epsilon4    = 4*$epsilon
 #  - sigma
-$sigma       =
+$sigma       = 3.487#Å für Argon
 $sigma2      = $sigma**2
 #  - cut-off radius
 $cut_off_radius
@@ -61,8 +65,15 @@ end
 #-------------------------------------------------------------------#
 class Float 
 	def adjust
-		self > $box ? self - box : self
-	end		
+		# Warum ist adjust nötig?
+		#  |-box = 5-|
+		# -|-+-+-+-+-|-+-+-+-+-|-+-+-+-+-|-
+		#  | o     * | o     * | o     * | 
+		# -|-+-+-+-+-|-+-+-+-+-|-+-+-+-+-|-
+		#    |--3--|-2-| mit 3 + 2 = box
+		# da 3 > box/2  => box - 3 = 2
+		self > $hbox ? $box - self : self
+	end
 end
 #-------------------------------------------------------------------#
 def calculate configuration
@@ -117,8 +128,8 @@ class Array
 		temp = rand $coordinates
 		self[temp] += $delta2*((rand)-0.5)
 		case
-			when self[temp] > $box then self[temp] -= $box
-			when self[temp] < $box then self[temp] += $box
+			when self[temp] >= $box then self[temp] -= $box
+			when self[temp] <  0    then self[temp] += $box
 			else
 		end
 		return self
@@ -149,7 +160,24 @@ while runs <= $max_runs
 	total_energy += energy_old/$max_runs
 end
 #-------------------------------------------------------------------#
-#! Ausgabe der Ergebnisse
-File.open(name + '','w+') do |file| end
-#TODO
+#! Ausgabe einer „Trajektorie“
+trj = File.open(name + '.trj','w+')
+results.dup.each do |configuration|
+	trj << configuration.length.to_s + "\n"
+	trj << "Coordinates from montecarlo-lj.rb\n"
+	until  configuration.empty?
+		trj << "Ar%10.5f%10.5f%10.5f\n" % configuration.shift(3) 
+	end
+end
+trj.close
+#-------------------------------------------------------------------#
+#! Ausgabe der Endkonfiguration (zerstört Endkonfiguration)
+#  ist das überhaupt interessant?
+xyz = File.open(name + '.xyz','w+')
+xyz << old.length.to_s + "\n"
+xyz << "Coordinates from montecarlo-lj.rb\n"
+until  old.empty?
+	xyz << "Ar%10.5f%10.5f%10.5f\n" % old.shift(3) 
+end
+xyz.close
 #-------------------------------------------------------------------#

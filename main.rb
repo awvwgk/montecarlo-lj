@@ -16,71 +16,53 @@ require_relative 'mc-calculate'
 require_relative 'mc-lj'
 require_relative 'mc-step'
 #-------------------------------------------------------------------#
-name = ARGV[0].chomp
+name = "data"
+input = File.readlines(name + '.inp')
+# get rid of the comments
+input.reject! { |line| line.match? /^\#.*/ }
+# get rid of the newlines
+input.map!    { |line| line.chomp }
+# initialize a hash for all parameters
+$parameter = Hash.new
+# get the parameters
+input.each do |line|
+	line.match /\s*\=\s*/
+	# and store them in the hash
+	$parameter[$`.intern] = $'.to_f
+end
+p $parameter
+# now get the name of the files
+$parameter[:delta2]      = 2*$parameter[:delta]
+$parameter[:hbox]        = 0.5*$parameter[:box]
+$parameter[:beta]        = 1.0/$parameter[:temperatur]
+$parameter[:epsilon4]    = 4.0*$parameter[:epsilon]
+$parameter[:sigma2]      = $parameter[:sigma]*$parameter[:sigma]
+$parameter[:cut_off_radius] = $parameter[:hbox]
+$parameter[:cut_off_radius2] = $parameter[:cut_off_radius]*$parameter[:cut_off_radius]
 #-------------------------------------------------------------------#
-input,data,old = File.readlines(name+'.xyz'),Array.new,Array.new
-$particle      = input[0].to_i
-$coordinates   = 3*$particle
+input,data,old = File.readlines(name + '.xyz'),Array.new,Array.new
+$parameter[:particle]    = input[0].to_i
+$parameter[:coordinates] = 3*$parameter[:particle]
 input.slice(2..(input.length-1)).each do |line|
 	data << line.split(%r{\s+}).slice(1..3)
 end
 data.flatten.each { |coordinate| old << coordinate.to_f }
 #-------------------------------------------------------------------#
-#! Einlesen der wichtigen Daten
-#  - MCs für Einstellung des Gleichgewichts
-#  - MCs im equilibrierten System
-$max_runs    = 1000
-#  - Anzahl von MCs zwischen der Datenaufnahme
-$max_steps   = 20
-#  - Maximale Schrittlänge
-$delta       = 1
-$delta2      = 2*$delta
-#  - Anzahl von Schritten während MC
-## Parameter
-#  - Maximale Anzahl an Partikeln
-## System
-#  - Boxlänge
-#    - Halbe Boxlänge
-$box         = 84.49767
-$hbox        = 0.5*$box
-#  - Temperatur
-#    - beta
-$temperatur  = 90.0
-$beta        = 1.0/$temperatur
-## Potential (hier LJ)
-#  - epsilon
-$epsilon     = 111.7#K für Argon
-$epsilon4    = 4.0*$epsilon
-#  - sigma
-$sigma       = 3.487#Å für Argon
-$sigma2      = $sigma*$sigma
-#  - cut-off radius
-$cut_off_radius = $hbox
-$cut_off_radius2 = $cut_off_radius*$cut_off_radius
-#-------------------------------------------------------------------#
-## Konfiguration
-#  - Anzahl der Partikel
-#  - Position der Partikel
-#-------------------------------------------------------------------#
-#! Berechnen der Gesamtenergie des Systems
-#! Beginn der MCs
-#  ! Einstellen ob vor oder im GGW
-#  ! Kann nach der Rechnung durchgeführt werden
-#  Durchführen der Wiederholungen
+# TODO Einstellen ob vor oder im GGW
 results = Array.new
 runs = 0
 energy_results = Array.new
 energy_old = calculate old
-while runs < $max_runs
+while runs < $parameter[:max_runs]
 	acc = false
 	runs += 1
 	# Durchführen der Schritte, TODO: ist .dup nötig?
 	new,steps = old.dup,0
 	# Verschieben eines Partikels 
-	steps += 1 and new.mcstep! while steps < $max_steps
+	steps += 1 and new.mcstep! while steps < $parameter[:max_steps]
 	energy_new = calculate new
 	# Bestimmen ob die neue Konfiguration angenommen wird
-	diff = Math::exp(-$beta*(energy_new-energy_old))
+	diff = Math::exp(-$parameter[:beta]*(energy_new-energy_old))
 	old,energy_old,acc = new,energy_new,true if diff > rand
 	printf "\naktuelle Energie = %5.5f | ", energy_old
 	printf acc ? "angenommen " : "abgelehnt  "
@@ -98,12 +80,11 @@ trj = File.open(name + '.trj','w+')
 temp = results.dup
 for j in 0...(temp.length) do
 	c = temp[j].dup
-	trj << $particle.to_s + "\n"
-	trj << "Coordinates from montecarlo-lj.rb\n"
+	trj << $parameter[:particle].to_s + "\n"
+	trj << "Coordinates from montecarlo-lj.rb E %.10f\n" % energy_results[j]
 	until  c.empty?
 		trj << "Ar%10.5f%10.5f%10.5f\n" % c.shift(3) 
 	end
-	#print configuration, "!\n"
 end
 trj.close
 #-------------------------------------------------------------------#
@@ -111,16 +92,14 @@ trj.close
 #  ist das überhaupt interessant? → Startkonfiguration für neuen MC
 total_energy = 0
 energy_results.each do |energy|
-	total_energy += energy/$max_runs
+	total_energy += energy/$parameter[:max_runs]
 end
 puts total_energy
-=begin
-xyz = File.open(name + '.xyz','w+')
-xyz << old.length.to_s + "\n"
-xyz << "Coordinates from montecarlo-lj.rb\n"
+xyz = File.open(name + '.final' + '.xyz','w+')
+xyz << $parameter[:particle].to_s + "\n"
+xyz << "Coordinates from montecarlo-lj.rb E %.10f\n" %energy_results.last
 until  old.empty?
 	xyz << "Ar%10.5f%10.5f%10.5f\n" % old.shift(3) 
 end
 xyz.close
-=end
 #-------------------------------------------------------------------#

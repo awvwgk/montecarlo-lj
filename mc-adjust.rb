@@ -8,7 +8,7 @@ class Float
 		# -|-+-+-+-+-|-+-+-+-+-|-+-+-+-+-|-
 		#    |--3--|-2-| mit 3 + 2 = box
 		# da 3 > box/2  => box - 3 = 2
-		self > $hbox ? $box - self : self
+		self > $parameter[:hbox] ? $parameter[:box] - self : self
 	end
 end
 #-------------------------------------------------------------------#

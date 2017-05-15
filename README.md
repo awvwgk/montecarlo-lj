@@ -1,6 +1,7 @@
 # montecarlo-lj
 A Monte Carlo simulation for LJ-particles currently under development
 
-Usage: ruby main.rb xyz-file
+Usage: ruby main.rb
 
-Most parameters must be changed in main.rb as reading from files is not implemented yet.
+currently you have to place an input-file named data.inp and a xyz-file
+named data.xyz in the present working directory

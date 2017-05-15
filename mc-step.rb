@@ -12,11 +12,11 @@ class Array
 	def mcstep!
 		# Achtung! Die Anzahl der Koordinaten wird beim Start
 		# festgelegt, spart den Aufruf von .length bei jedem mcstep
-		temp = rand $coordinates
-		self[temp] += $delta2*((rand)-0.5)
+		temp = rand $parameter[:coordinates]
+		self[temp] += $parameter[:delta2]*((rand)-0.5)
 		case
-			when self[temp] >= $box then self[temp] -= $box
-			when self[temp] <  0    then self[temp] += $box
+			when self[temp] >= $parameter[:box] then self[temp] -= $parameter[:box]
+			when self[temp] <  0    then self[temp] += $parameter[:box]
 			else
 		end
 		return self

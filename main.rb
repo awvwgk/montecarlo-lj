@@ -1,6 +1,6 @@
 #!/bin/ruby
 #-------------------------------------------------------------------#
-require 'opt-parser'
+require 'optparse'
 options = Hash.new
 OptionParser.new do |option|
 	option.banner = 'Benutzung: ruby main.rb input-file'
@@ -9,6 +9,8 @@ OptionParser.new do |option|
 		exit
 	end
 end.parse!
+#-------------------------------------------------------------------#
+name = ARGV[0].chomp
 #-------------------------------------------------------------------#
 input,data,old = File.readlines(name+'.xyz'),Array.new,Array.new
 $particle      = input[0].to_i
@@ -33,21 +35,22 @@ $delta2      = 2*$delta
 ## System
 #  - Boxlänge
 #    - Halbe Boxlänge
-$box         = 
+$box         = 19.0
 $hbox        = 0.5*$box
 #  - Temperatur
 #    - beta
-$temperatur  = 10
+$temperatur  = 10.0
 $beta        = 1.0/$temperatur
 ## Potential (hier LJ)
 #  - epsilon
 $epsilon     = 111.7#K für Argon
-$epsilon4    = 4*$epsilon
+$epsilon4    = 4.0*$epsilon
 #  - sigma
 $sigma       = 3.487#Å für Argon
-$sigma2      = $sigma**2
+$sigma2      = $sigma*$sigma
 #  - cut-off radius
-$cut_off_radius
+$cut_off_radius = $hbox
+$cut_off_radius2 = $cut_off_radius*$cut_off_radius
 #-------------------------------------------------------------------#
 ## Konfiguration
 #  - Anzahl der Partikel
@@ -81,17 +84,17 @@ end
 #-------------------------------------------------------------------#
 def calculate configuration
 	# Berechnung der Systemenergie
-	energy = 0
-	# Die Koordinaten sind in einem Array gespeichert
+	energy = 0.0
+	# Alle Koordinaten sind in nur einem Array gespeichert
 	# Der Array wird dupliziert
-	temp  = configuration.dub
+	temp  = configuration.dup
 	# Die Koordinaten werden vom Array genommen,
 	# um Doppeltzählung und Kreuzterme zu vermeiden
 	until temp.empty?
 		# .pop nimmt Koordinaten von oben, also z,y,x
 		z,y,x = temp.pop,temp.pop,temp.pop
 		# Und die Energie zu den restlichen Teilchen ausgerechenet
-		dx2,dy2,dz2=0,0,0
+		dx,dy,dz=0,0,0
 		# Laufvariable zur Unterscheidung der Koordinaten
 		temp_runs=0
 		# .each nimmt Koordinaten von unten, also x,y,z
@@ -100,16 +103,16 @@ def calculate configuration
 			temp_runs += 1
 			# und Fallunterscheidung
 			# TODO: macht es das Programm schneller oder langsamer?
-			case temp_runs%3
-				when 1 then dx = (x - coordinate).abs.adjust
-			    when 2 then dy = (y - coordinate).abs.adjust
-				else
-					dz = (z - coordinate).abs.adjust
-					# direkte Berechnung des Abstandsquadrats
-					distance2 = dx*dx + dy*dy + dz*dz
-					# Hinzufügen der Energie zur Systemenergie
-					energy += lj distance2
-				end
+			if temp_runs%3==1
+				dx = (x - coordinate).abs.adjust
+			elsif temp_runs%3==2
+			    dy = (y - coordinate).abs.adjust
+			else        
+				dz = (z - coordinate).abs.adjust
+				# direkte Berechnung des Abstandsquadrats
+				distance2 = (dx*dx + dy*dy + dz*dz)
+				# Hinzufügen der Energie zur Systemenergie
+				energy += lj distance2
 			end
 		end
 	end
@@ -146,6 +149,7 @@ end
 #  Durchführen der Wiederholungen
 results = Array.new
 runs = 0
+total_energy=0
 energy_old = calculate old
 while runs <= $max_runs
 	runs += 1
@@ -176,6 +180,8 @@ trj.close
 #-------------------------------------------------------------------#
 #! Ausgabe der Endkonfiguration (zerstört Endkonfiguration)
 #  ist das überhaupt interessant? → Startkonfiguration für neuen MC
+puts total_energy
+=begin
 xyz = File.open(name + '.xyz','w+')
 xyz << old.length.to_s + "\n"
 xyz << "Coordinates from montecarlo-lj.rb\n"
@@ -183,4 +189,5 @@ until  old.empty?
 	xyz << "Ar%10.5f%10.5f%10.5f\n" % old.shift(3) 
 end
 xyz.close
+=end
 #-------------------------------------------------------------------#

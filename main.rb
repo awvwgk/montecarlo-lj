@@ -25,9 +25,9 @@ data.flatten.each { |coordinate| old << coordinate.to_f }
 #  - MCs im equilibrierten System
 $max_runs    = 1000
 #  - Anzahl von MCs zwischen der Datenaufnahme
-$max_steps   = 10
+$max_steps   = 25
 #  - Maximale Schrittlänge
-$delta       = 0.01
+$delta       = 0.5
 $delta2      = 2*$delta
 #  - Anzahl von Schritten während MC
 ## Parameter
@@ -35,11 +35,11 @@ $delta2      = 2*$delta
 ## System
 #  - Boxlänge
 #    - Halbe Boxlänge
-$box         = 19.0
+$box         = 42.24884
 $hbox        = 0.5*$box
 #  - Temperatur
 #    - beta
-$temperatur  = 10.0
+$temperatur  = 80.0
 $beta        = 1.0/$temperatur
 ## Potential (hier LJ)
 #  - epsilon
@@ -151,12 +151,12 @@ results = Array.new
 runs = 0
 total_energy=0
 energy_old = calculate old
-while runs <= $max_runs
+while runs < $max_runs
 	runs += 1
 	# Durchführen der Schritte, TODO: ist .dup nötig?
 	new,steps = old.dup,0
 	# Verschieben eines Partikels 
-	steps += 1 and new.mcstep! while steps <= $max_steps
+	steps += 1 and new.mcstep! while steps < $max_steps
 	energy_new = calculate new
 	# Bestimmen ob die neue Konfiguration angenommen wird
 	old,energy_old = new,energy_new if Math::exp(-$beta*(energy_new-energy_old)) > rand
@@ -169,13 +169,24 @@ end
 #-------------------------------------------------------------------#
 #! Ausgabe einer „Trajektorie“
 trj = File.open(name + '.trj','w+')
-results.dup.each do |configuration|
-	trj << configuration.length.to_s + "\n"
+count = 0
+temp = results.dup
+p temp.length
+temp.each do |c| p c[0] if c.empty? end
+for j in 0...(temp.length) do
+	#p configuration if configuration.empty?
+	c = temp[j].dup
+	count += 1 unless c.empty?
+	p c if c.empty?
+	#p "!" if configuration.empty?
+	trj << $particle.to_s + "\n"
 	trj << "Coordinates from montecarlo-lj.rb\n"
-	until  configuration.empty?
-		trj << "Ar%10.5f%10.5f%10.5f\n" % configuration.shift(3) 
+	until  c.empty?
+		trj << "Ar%10.5f%10.5f%10.5f\n" % c.shift(3) 
 	end
+	#print configuration, "!\n"
 end
+p count
 trj.close
 #-------------------------------------------------------------------#
 #! Ausgabe der Endkonfiguration (zerstört Endkonfiguration)

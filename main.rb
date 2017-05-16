@@ -49,10 +49,20 @@ end
 data.flatten.each { |coordinate| old << coordinate.to_f }
 #-------------------------------------------------------------------#
 # TODO Einstellen ob vor oder im GGW
+trj,dat = File.open(name + '.trj','w+'),File.open(name + '.dat','w+')
 results = Array.new
 runs = 0
 energy_results = Array.new
 energy_old = calculate old
+dat << "%5i\t%.10f\n" % [runs,energy_old]
+configuration = old.dup
+trj << $parameter[:particle].to_s + "\n"
+trj << "initial coordinates E %.10f\n" % energy_old
+until  configuration.empty?
+	trj << "Ar%10.5f%10.5f%10.5f\n" % configuration.shift(3) 
+end
+#-------------------------------------------------------------------#
+# Start of the real Monte Carlo
 while runs < $parameter[:max_runs]
 	acc = false
 	runs += 1
@@ -70,13 +80,20 @@ while runs < $parameter[:max_runs]
 	# Hinzufügen der neuen bzw. alten Konfiguration zu den Ergebnissen
 	# die Rechnung erfolgt dann nach belieben später
 	results << old
+	dat << "%5i\t%.10f\n" % [runs,energy_old]
+	configuration = old.dup
+	trj << $parameter[:particle].to_s + "\n"
+	trj << "Coordinates from montecarlo-lj.rb E %.10f\n" % energy_old
+	until  configuration.empty?
+		trj << "Ar%10.5f%10.5f%10.5f\n" % configuration.shift(3) 
+	end
 	# Berechnen der Gesamtenergie
 	energy_results << energy_old #/$max_runs 
 end
 puts "\n"
 #-------------------------------------------------------------------#
 #! Ausgabe einer „Trajektorie“
-trj = File.open(name + '.trj','w+')
+=begin
 temp = results.dup
 for j in 0...(temp.length) do
 	c = temp[j].dup
@@ -86,6 +103,7 @@ for j in 0...(temp.length) do
 		trj << "Ar%10.5f%10.5f%10.5f\n" % c.shift(3) 
 	end
 end
+=end
 trj.close
 #-------------------------------------------------------------------#
 #! Ausgabe der Endkonfiguration (zerstört Endkonfiguration)
@@ -94,7 +112,9 @@ total_energy = 0
 energy_results.each do |energy|
 	total_energy += energy/$parameter[:max_runs]
 end
+dat.close
 puts total_energy
+#-------------------------------------------------------------------#
 xyz = File.open(name + '.final' + '.xyz','w+')
 xyz << $parameter[:particle].to_s + "\n"
 xyz << "Coordinates from montecarlo-lj.rb E %.10f\n" %energy_results.last

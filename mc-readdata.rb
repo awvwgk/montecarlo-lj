@@ -13,8 +13,8 @@ class Parameter < Hash
 		input.slice(2...(input.length)).each do |line|
 			config << line.split(%r{\s+}).slice(1..3)
 		end
-		return config.flatten.map { |coordinate| coordinate.to_f }
-		#config.transpose ###splits coordinates in x, y, z
+		config = config.transpose.each {|sub|sub.map! {|c| c.to_f}}
+		return config[0],config[1],config[2]
 	end
 	def complete
 		self[:delta2]          = 2*self[:delta]

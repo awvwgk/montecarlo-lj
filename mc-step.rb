@@ -1,23 +1,20 @@
 #-------------------------------------------------------------------#
-=begin
-def mcstep configuration
-	configuration[rand(configuration.length)] += $delta*2*((rand)-0.5)
-	return configuration
-end
-=end
-# der Monte Carlo wie zuvor verändert die Koordinaten
-# TODO Scalieren für NPT-Ensemble mit .map!
 class Array
-	# deshalb jetzt als Methode in Array
-	def mcstep!
-		# Achtung! Die Anzahl der Koordinaten wird beim Start
-		# festgelegt, spart den Aufruf von .length bei jedem mcstep
-		temp = rand $parameter[:coordinates]
-		self[temp] += $parameter[:delta2]*((rand)-0.5)
+	def adjust! index
 		case
-			when self[temp] >= $parameter[:box] then self[temp] -= $parameter[:box]
-			when self[temp] <  0    then self[temp] += $parameter[:box]
-			else
+			when self[index] >= $parameter[:box] then self[index] -= $parameter[:box]
+			when self[index] < 0 then self[index] += $parameter[:box]
+		end
+		return self
+	end
+end
+#-------------------------------------------------------------------#
+class Hash
+	def mcstep!
+		temp = rand $parameter[:particle]
+		self.each do |axis, coordinates|
+			self[axis][temp] += $parameter[:delta2]*((rand)-0.5)
+			self[axis].adjust! temp
 		end
 		return self
 	end

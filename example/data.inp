@@ -1,0 +1,33 @@
+#  Einlesen der wichtigen Daten
+#  - MCs für Einstellung des Gleichgewichts
+#  - MCs im equilibrierten System
+max_runs    = 100
+#  - Anzahl von MCs zwischen der Datenaufnahme
+max_steps   = 10
+#  - Maximale Schrittlänge
+delta       = 1
+#delta2      = 2*$delta
+#  - Anzahl von Schritten während MC
+## Parameter
+#  - Maximale Anzahl an Partikeln
+## System
+#  - Boxlänge
+#    - Halbe Boxlänge
+box         = 42.24884
+#hbox        = 0.5*$box
+#  - Temperatur
+#    - beta
+temperatur  = 90.0
+#beta        = 1.0/$temperatur
+## Potential (hier LJ)
+#  - epsilon
+epsilon     = 111.7
+#K für Argon
+#epsilon4    = 4.0*$epsilon
+#  - sigma
+sigma       = 3.487
+#Å für Argon
+#sigma2      = $sigma*$sigma
+#  - cut-off radius
+#cut_off_radius = $hbox
+#cut_off_radius2 = $cut_off_radius*$cut_off_radius

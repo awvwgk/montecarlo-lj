@@ -16,7 +16,7 @@ require_relative 'mc-calculate'
 require_relative 'mc-lj'
 require_relative 'mc-step'
 #-------------------------------------------------------------------#
-name = "data"
+name = ARGV[0].to_s.chomp '.inp'
 input = File.readlines(name + '.inp')
 # get rid of the comments
 input.reject! { |line| line.match? /^\#.*/ }
@@ -40,32 +40,46 @@ $parameter[:sigma2]      = $parameter[:sigma]*$parameter[:sigma]
 $parameter[:cut_off_radius] = $parameter[:hbox]
 $parameter[:cut_off_radius2] = $parameter[:cut_off_radius]*$parameter[:cut_off_radius]
 #-------------------------------------------------------------------#
-input,data,old = File.readlines(name + '.xyz'),Array.new,Array.new
+input,old = File.readlines(name + '.xyz'),Array.new
 $parameter[:particle]    = input[0].to_i
 $parameter[:coordinates] = 3*$parameter[:particle]
 input.slice(2..(input.length-1)).each do |line|
-	data << line.split(%r{\s+}).slice(1..3)
+	old << line.split(%r{\s+}).slice(1..3)
 end
-data.flatten.each { |coordinate| old << coordinate.to_f }
+old.flatten!.map! { |coordinate| coordinate.to_f }
+#-------------------------------------------------------------------#
+def sample configuration, energy
+	$results << configuration
+	$energy_results << energy
+end
+#-------------------------------------------------------------------#
+def save configuration, energy
+	$dat << "%5i\t%.10f\n" % [$runs,energy]
+	configuration = configuration.dup
+	$trj << $parameter[:particle].to_s + "\n"
+	$trj << "Coordinates from montecarlo-lj.rb E %.10f\n" % energy
+	until  configuration.empty?
+		$trj << "Ar%10.5f%10.5f%10.5f\n" % configuration.shift(3) 
+	end
+end
+#-------------------------------------------------------------------#
+def verbose energy, p, acc
+	printf "\naktuelle Energie = %5.5f | ", energy
+	printf acc ? "angenommen " : "abgelehnt  "
+	printf "mit p = %2.2f%", p*100 if p < 1
+end
 #-------------------------------------------------------------------#
 # TODO Einstellen ob vor oder im GGW
-trj,dat = File.open(name + '.trj','w+'),File.open(name + '.dat','w+')
-results = Array.new
-runs = 0
-energy_results = Array.new
+$trj,$dat = File.open(name + '.trj','w+'),File.open(name + '.dat','w+')
+$results,$energy_results = Array.new,Array.new
+$runs = 0
 energy_old = calculate old
-dat << "%5i\t%.10f\n" % [runs,energy_old]
-configuration = old.dup
-trj << $parameter[:particle].to_s + "\n"
-trj << "initial coordinates E %.10f\n" % energy_old
-until  configuration.empty?
-	trj << "Ar%10.5f%10.5f%10.5f\n" % configuration.shift(3) 
-end
+save old, energy_old
 #-------------------------------------------------------------------#
 # Start of the real Monte Carlo
-while runs < $parameter[:max_runs]
+while $runs < $parameter[:max_runs]
 	acc = false
-	runs += 1
+	$runs += 1
 	# Durchführen der Schritte, TODO: ist .dup nötig?
 	new,steps = old.dup,0
 	# Verschieben eines Partikels 
@@ -74,21 +88,12 @@ while runs < $parameter[:max_runs]
 	# Bestimmen ob die neue Konfiguration angenommen wird
 	diff = Math::exp(-$parameter[:beta]*(energy_new-energy_old))
 	old,energy_old,acc = new,energy_new,true if diff > rand
-	printf "\naktuelle Energie = %5.5f | ", energy_old
-	printf acc ? "angenommen " : "abgelehnt  "
-	printf "mit p = %2.2f%", diff*100 if diff < 1
+	verbose energy_old, diff, acc
 	# Hinzufügen der neuen bzw. alten Konfiguration zu den Ergebnissen
 	# die Rechnung erfolgt dann nach belieben später
-	results << old
-	dat << "%5i\t%.10f\n" % [runs,energy_old]
-	configuration = old.dup
-	trj << $parameter[:particle].to_s + "\n"
-	trj << "Coordinates from montecarlo-lj.rb E %.10f\n" % energy_old
-	until  configuration.empty?
-		trj << "Ar%10.5f%10.5f%10.5f\n" % configuration.shift(3) 
-	end
+	sample old, energy_old
+	save   old, energy_old
 	# Berechnen der Gesamtenergie
-	energy_results << energy_old #/$max_runs 
 end
 puts "\n"
 #-------------------------------------------------------------------#
@@ -104,20 +109,20 @@ for j in 0...(temp.length) do
 	end
 end
 =end
-trj.close
+$trj.close
 #-------------------------------------------------------------------#
 #! Ausgabe der Endkonfiguration (zerstört Endkonfiguration)
 #  ist das überhaupt interessant? → Startkonfiguration für neuen MC
 total_energy = 0
-energy_results.each do |energy|
+$energy_results.each do |energy|
 	total_energy += energy/$parameter[:max_runs]
 end
-dat.close
+$dat.close
 puts total_energy
 #-------------------------------------------------------------------#
 xyz = File.open(name + '.final' + '.xyz','w+')
 xyz << $parameter[:particle].to_s + "\n"
-xyz << "Coordinates from montecarlo-lj.rb E %.10f\n" %energy_results.last
+xyz << "Coordinates from montecarlo-lj.rb E %.10f\n" % $energy_results.last
 until  old.empty?
 	xyz << "Ar%10.5f%10.5f%10.5f\n" % old.shift(3) 
 end

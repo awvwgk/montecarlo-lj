@@ -35,8 +35,8 @@ $dat.save energy_old
 while $runs < $parameter[:max_runs]
 	acc = false
 	$runs += 1
-	# Durchführen der Schritte, TODO: ist .dup nötig?
-	new,steps = old.dup,0
+	new,steps = Hash.new,0
+	old.each {|axis,coord| new[axis] = coord.dup}
 	# Verschieben eines Partikels 
 	steps += 1 and new.mcstep! while steps < $parameter[:max_steps]
 	energy_new = calculate new

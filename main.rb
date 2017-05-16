@@ -19,7 +19,7 @@ require_relative 'mc-step'
 name = ARGV[0].to_s.chomp '.inp'
 input = File.readlines(name + '.inp')
 # get rid of the comments
-input.reject! { |line| line.match? /^\#.*/ }
+input.reject! { |line| line.match /^\#.*/ }
 # get rid of the newlines
 input.map!    { |line| line.chomp }
 # initialize a hash for all parameters

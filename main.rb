@@ -10,43 +10,17 @@ OptionParser.new do |option|
 	end
 end.parse!
 #-------------------------------------------------------------------#
-#require_relative 'mc-readdata'
+require_relative 'mc-readdata'
 require_relative 'mc-adjust'
 require_relative 'mc-calculate'
 require_relative 'mc-lj'
 require_relative 'mc-step'
 #-------------------------------------------------------------------#
 name = ARGV[0].to_s.chomp '.inp'
-input = File.readlines(name + '.inp')
-# get rid of the comments
-input.reject! { |line| line.match /^\#.*/ }
-# get rid of the newlines
-input.map!    { |line| line.chomp }
-# initialize a hash for all parameters
-$parameter = Hash.new
-# get the parameters
-input.each do |line|
-	line.match /\s*\=\s*/
-	# and store them in the hash
-	$parameter[$`.intern] = $'.to_f
-end
-p $parameter
-# now get the name of the files
-$parameter[:delta2]      = 2*$parameter[:delta]
-$parameter[:hbox]        = 0.5*$parameter[:box]
-$parameter[:beta]        = 1.0/$parameter[:temperatur]
-$parameter[:epsilon4]    = 4.0*$parameter[:epsilon]
-$parameter[:sigma2]      = $parameter[:sigma]*$parameter[:sigma]
-$parameter[:cut_off_radius] = $parameter[:hbox]
-$parameter[:cut_off_radius2] = $parameter[:cut_off_radius]*$parameter[:cut_off_radius]
-#-------------------------------------------------------------------#
-input,old = File.readlines(name + '.xyz'),Array.new
-$parameter[:particle]    = input[0].to_i
-$parameter[:coordinates] = 3*$parameter[:particle]
-input.slice(2..(input.length-1)).each do |line|
-	old << line.split(%r{\s+}).slice(1..3)
-end
-old.flatten!.map! { |coordinate| coordinate.to_f }
+$parameter = Parameter.new name
+old = $parameter.read_config name
+$parameter.complete
+p old.length
 #-------------------------------------------------------------------#
 def sample configuration, energy
 	$results << configuration
@@ -59,7 +33,7 @@ def save configuration, energy
 	$trj << $parameter[:particle].to_s + "\n"
 	$trj << "Coordinates from montecarlo-lj.rb E %.10f\n" % energy
 	until  configuration.empty?
-		$trj << "Ar%10.5f%10.5f%10.5f\n" % configuration.shift(3) 
+		$trj << "Ar%10.5f%10.5f%10.5f\n" % configuration.shift(3)
 	end
 end
 #-------------------------------------------------------------------#
